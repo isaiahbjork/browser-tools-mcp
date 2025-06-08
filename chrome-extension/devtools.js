@@ -1002,6 +1002,28 @@ async function setupWebSocket() {
 
             ws.send(JSON.stringify(response));
           });
+        } else if (message.type === "refresh-browser") {
+          console.log("Chrome Extension: Received refresh browser command");
+          
+          // Use chrome.tabs.reload to refresh the current tab
+          const tabId = chrome.devtools.inspectedWindow.tabId;
+          
+          chrome.runtime.sendMessage(
+            {
+              type: "REFRESH_TAB",
+              tabId: tabId,
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                console.error(
+                  "Chrome Extension: Error refreshing tab:",
+                  chrome.runtime.lastError
+                );
+              } else {
+                console.log("Chrome Extension: Tab refresh command sent successfully");
+              }
+            }
+          );
         } else if (message.type === "get-current-url") {
           console.log("Chrome Extension: Received request for current URL");
 

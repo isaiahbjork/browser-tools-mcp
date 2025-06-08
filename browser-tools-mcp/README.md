@@ -63,6 +63,7 @@ The server provides the following MCP functions:
 - `mcp_getNetworkSuccess` - Get successful network requests
 - `mcp_getNetworkLogs` - Get all network logs
 - `mcp_getSelectedElement` - Get the currently selected DOM element
+- `mcp_refreshBrowser` - Refresh the currently active browser tab that's connected to the MCP server
 - `mcp_runAccessibilityAudit` - Run a WCAG-compliant accessibility audit
 - `mcp_runPerformanceAudit` - Run a performance audit
 - `mcp_runSEOAudit` - Run an SEO audit

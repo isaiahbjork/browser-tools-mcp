@@ -540,6 +540,8 @@ app.post("/wipelogs", (req, res) => {
   res.json({ status: "ok", message: "All logs cleared successfully" });
 });
 
+
+
 // Add endpoint for the extension to report the current URL
 app.post("/current-url", (req, res) => {
   console.log(
@@ -934,6 +936,37 @@ export class BrowserConnector {
   // Public method to check if there's an active connection
   public hasActiveConnection(): boolean {
     return this.activeConnection !== null;
+  }
+
+  public async sendRefreshCommand(): Promise<void> {
+    console.log("Browser Connector: sendRefreshCommand called");
+    console.log(`Browser Connector: Current tab ID being targeted: ${currentTabId}`);
+    console.log(`Browser Connector: Current URL being targeted: ${currentUrl}`);
+    
+    if (!this.activeConnection) {
+      throw new Error("No active WebSocket connection to Chrome extension");
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      try {
+        const message = JSON.stringify({
+          type: "refresh-browser",
+          timestamp: Date.now(),
+          targetTabId: currentTabId, // Include the tab ID for reference
+        });
+        
+        console.log("Browser Connector: Sending refresh command to extension:", message);
+        this.activeConnection!.send(message);
+        
+        // For refresh, we assume success if we can send the message
+        // The actual refresh will happen asynchronously in the browser
+        console.log(`Browser Connector: Refresh command sent for tab ${currentTabId}`);
+        resolve();
+      } catch (error) {
+        console.error("Browser Connector: Error sending refresh command:", error);
+        reject(error);
+      }
+    });
   }
 
   // Add new endpoint for programmatic screenshot capture
@@ -1472,6 +1505,50 @@ export class BrowserConnector {
 
     // Initialize the browser connector with the existing app AND server
     const browserConnector = new BrowserConnector(app, server);
+
+    // Add refresh browser endpoint after browserConnector is created
+    app.post("/refresh-browser", (req, res) => {
+      console.log("Browser Connector: Received request to refresh browser");
+      
+      if (!browserConnector.hasActiveConnection()) {
+        console.log("Browser Connector: No active WebSocket connection");
+        res.status(503).json({ 
+          status: "error", 
+          error: "Chrome extension not connected" 
+        });
+        return;
+      }
+
+      try {
+        // Send refresh command to the Chrome extension
+        browserConnector.sendRefreshCommand()
+          .then(() => {
+            console.log("Browser Connector: Refresh command sent successfully");
+            const message = currentTabId && currentUrl 
+              ? `Browser refresh command sent to tab ${currentTabId} (${currentUrl})`
+              : "Browser refresh command sent to active tab";
+            res.json({ 
+              status: "ok", 
+              message: message,
+              tabId: currentTabId,
+              url: currentUrl
+            });
+          })
+          .catch((error: any) => {
+            console.error("Browser Connector: Error sending refresh command:", error);
+            res.status(500).json({ 
+              status: "error", 
+              error: error.message || "Failed to send refresh command" 
+            });
+          });
+      } catch (error: any) {
+        console.error("Browser Connector: Error in refresh endpoint:", error);
+        res.status(500).json({ 
+          status: "error", 
+          error: error.message || "Internal server error" 
+        });
+      }
+    });
 
     // Handle shutdown gracefully with improved error handling
     process.on("SIGINT", async () => {

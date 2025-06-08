@@ -11,6 +11,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Required to use sendResponse asynchronously
   }
 
+  if (message.type === "REFRESH_TAB" && message.tabId) {
+    console.log(`Background: Received request to refresh tab ${message.tabId}`);
+    
+    chrome.tabs.reload(message.tabId, {}, () => {
+      if (chrome.runtime.lastError) {
+        console.error("Background: Error refreshing tab:", chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        console.log(`Background: Successfully refreshed tab ${message.tabId}`);
+        sendResponse({ success: true });
+      }
+    });
+    return true; // Required to use sendResponse asynchronously
+  }
+
   // Handle explicit request to update the server with the URL
   if (message.type === "UPDATE_SERVER_URL" && message.tabId && message.url) {
     console.log(

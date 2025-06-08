@@ -339,6 +339,57 @@ server.tool("wipeLogs", "Wipe all browser logs from memory", async () => {
   });
 });
 
+server.tool("refreshBrowser", "Refresh the currently active browser tab that is connected to the MCP server", async () => {
+  return await withServerConnection(async () => {
+    try {
+      const response = await fetch(
+        `http://${discoveredHost}:${discoveredPort}/refresh-browser`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: result.message || "Browser refreshed successfully",
+            },
+          ],
+        };
+      } else {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error refreshing browser: ${result.error || "Unknown error"}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Failed to refresh browser: ${errorMessage}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  });
+});
+
 // Define audit categories as enum to match the server's AuditCategory enum
 enum AuditCategory {
   ACCESSIBILITY = "accessibility",
